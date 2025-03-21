@@ -1,8 +1,6 @@
 <?php
 
 use App\Http\Controllers\api\ChatController;
-use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
 

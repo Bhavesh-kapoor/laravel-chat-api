@@ -15,27 +15,30 @@ class ChatController extends Controller
     public function sendMessage(ChatSendRequest $request)
     {
         try {
-            $data['sender_id'] = $request->sender_id;
-            $data['receiver_id'] = $request->receiver_id;
-            $data['message'] = $request->message;
-            $data['reply_to'] = $request->reply_to ?? null;
-            $data['status'] = 'sent';
-            if ($request->has('file_path')) {
-                $file   = $request->file('file_path');
-                $filename = time() . '_' . $file->getClientOriginalName();
-                $file->move(public_path('uploads/chats/assets'), $filename);
-                $data['file_path']  =  url('uploads/chats/assets/' . $filename);;
-            }
-            $data['created_at'] = now();
+            $data = [
+                'sender_id' => $request->sender_id,
+                'receiver_id' => $request->receiver_id,
+                'message' => $request->message,
+                'reply_to' => $request->reply_to ?? null,
+                'status' => 'sent',
+                'created_at' => now(),
+            ];
 
-            $insert =  Message::insert($data);
-            if ($insert) {
-                return response()->json(['code' => 201, 'message' => 'Message sent successfully!'], 201);
-            } else {
-                return response()->json(['code' => 500, 'message' => 'Something Went Wrong!'], 500);
+            if ($request->hasFile('file_path')) {
+                $file = $request->file('file_path');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $filePath = $file->storeAs('uploads/chats/assets', $filename, 'public');
+                $data['file_path'] = asset('storage/' . $filePath);
             }
+
+            $message = Message::create($data);
+
+            if ($message) {
+                return response()->json(['code' => 201, 'message' => 'Message sent successfully!'], 201);
+            }
+            return response()->json(['code' => 500, 'message' => 'Something Went Wrong!'], 500);
         } catch (\Exception $e) {
-            return response()->json(['code' => 500, 'message' => $e->getMessage()], 500);
+            return response()->json(['code' => 500, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
     }
 
@@ -58,9 +61,8 @@ class ChatController extends Controller
                 $checkMessageExist->updated_at = now();
                 $checkMessageExist->save();
                 return response()->json(['code' => 200, 'message' => 'Message Readed successfully!'], 200);
-            } else {
-                return response()->json(['code' => 400, 'message' => 'Message Not Found!'], 400);
             }
+            return response()->json(['code' => 400, 'message' => 'Message Not Found!'], 400);
         } catch (\Exception $e) {
             return response()->json(['code' => 500, 'message' => $e->getMessage()], 500);
         }
@@ -128,12 +130,11 @@ class ChatController extends Controller
                     'message' => 'Chat messages found successfully',
                     'data' => $messages
                 ], 200);
-            } else {
-                return response()->json([
-                    'code' => 404,
-                    'message' => 'No chat found'
-                ], 404);
             }
+            return response()->json([
+                'code' => 404,
+                'message' => 'No chat found'
+            ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
@@ -194,4 +195,7 @@ class ChatController extends Controller
             ], 500);
         }
     }
+
+
+    
 }
